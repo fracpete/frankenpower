@@ -43,7 +43,7 @@ def download(user: str, password: str, from_date: str, to_date: str, output_dir:
     logger.info("Initialize driver")
     options = None
     if output_dir is not None:
-        logger.debug("Using output dir: %s" % output_dir)
+        logger.info("Using output dir: %s" % output_dir)
         options = Options()
         options.set_preference("browser.download.folderList", 2)
         options.set_preference("browser.download.manager.showWhenStarting", False)
@@ -88,7 +88,7 @@ def download(user: str, password: str, from_date: str, to_date: str, output_dir:
     WebDriverWait(driver, 30).until(EC.element_to_be_clickable((By.CLASS_NAME, 'account-switcher-button-name')))
 
     # wait for loader to finish
-    logger.debug("Wait for loader to finish")
+    logger.info("Wait for loader to finish")
     loader = driver.find_element(By.CLASS_NAME, 'show-loader')
     WebDriverWait(driver, 30).until(EC.invisibility_of_element(loader))
 
