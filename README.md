@@ -1,5 +1,5 @@
 # frankenpower
-Python library  for downloading and processing energy data from frankenergy.co.nz
+Python library  for downloading and processing energy data from [Frank Energy (NZ)](frankenergy.co.nz).
 
 
 ## Tools
