@@ -2,6 +2,15 @@
 Python library  for downloading and processing energy data from [Frank Energy (NZ)](frankenergy.co.nz).
 
 
+## Installation
+
+Using the tatest github source code:
+
+```bash
+pip install git+https://github.com/fracpete/frankenpower.git
+```
+
+
 ## Tools
 
 ### Download
