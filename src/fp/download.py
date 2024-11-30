@@ -92,16 +92,21 @@ def date_to_id(d: datetime, aggregation: str) -> str:
         raise Exception("Unhandled aggregation: %s" % aggregation)
 
 
-def download(user: str, password: str, aggregation: str, from_date: str, to_date: str, output_dir: str = None):
+def download(user: str, password: str, aggregation: str, from_date: str, to_date: str,
+             output_dir: str = None):
     """
-    Downloads the
+    Downloads the usage data.
 
-    :param user:
-    :param password:
-    :param from_date:
-    :param to_date:
-    :param output_dir:
-    :return:
+    :param user: the user to log in as
+    :type user: str
+    :param password: the password for the user
+    :type password: str
+    :param from_date: the first date to download
+    :type from_date: str
+    :param to_date: the last date to download
+    :type to_date: str
+    :param output_dir: the directory to download the CSV files to
+    :type output_dir: str
     """
 
     # parse dates
