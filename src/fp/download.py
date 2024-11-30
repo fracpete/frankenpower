@@ -101,6 +101,8 @@ def download(user: str, password: str, aggregation: str, from_date: str, to_date
     :type user: str
     :param password: the password for the user
     :type password: str
+    :param aggregation: the type of aggregated data to download
+    :type aggregation: str
     :param from_date: the first date to download
     :type from_date: str
     :param to_date: the last date to download
