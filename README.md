@@ -1,5 +1,7 @@
 # frankenpower
-Python library  for downloading and processing energy data from [Frank Energy (NZ)](frankenergy.co.nz).
+Python library for downloading and processing energy data from [Frank Energy (NZ)](frankenergy.co.nz).
+
+Downloads are performed with [selenium](https://www.selenium.dev/).
 
 
 ## Installation
