@@ -29,6 +29,7 @@ setup(
     entry_points={
         "console_scripts": [
             "fp-download=fp.download:sys_main",
+            "fp-clean=fp.clean:sys_main",
         ]
     }
 )

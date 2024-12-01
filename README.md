@@ -47,3 +47,23 @@ optional arguments:
   -d, --debug           whether to output debugging information (default:
                         False)
 ```
+
+### Clean
+
+```
+usage: fp-clean [-h] [-i INPUT_DIR] [-o OUTPUT_DIR] [-v] [-d]
+
+Cleans up the downloaded CSV files.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i INPUT_DIR, --input_dir INPUT_DIR
+                        The directory with the downloaded, raw CSV files.
+                        (default: None)
+  -o OUTPUT_DIR, --output_dir OUTPUT_DIR
+                        The directory to store the cleaned up CSV files in.
+                        (default: None)
+  -v, --verbose         whether to output logging information (default: False)
+  -d, --debug           whether to output debugging information (default:
+                        False)
+```
