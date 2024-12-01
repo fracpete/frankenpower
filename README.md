@@ -17,10 +17,9 @@ pip install git+https://github.com/fracpete/frankenpower.git
 
 ```
 usage: fp-download [-h] -u USER -p PASSWORD [-o OUTPUT_DIR]
-                   [-a {daily,hourly}] -f FROM_DATE -t TO_DATE [--verbose]
-                   [--debug]
+                   [-a {daily,hourly}] -f FROM_DATE -t TO_DATE [-m] [-v] [-d]
 
-Downloads enervy consumption data as CSV files.
+Downloads energy consumption data as CSV files.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -40,7 +39,9 @@ optional arguments:
   -t TO_DATE, --to_date TO_DATE
                         The end date (monthly: YYYY, daily: YYYY-MM, hourly:
                         YYYY-MM-DD). (default: None)
-  --verbose             whether to output logging information (default: False)
-  --debug               whether to output debugging information (default:
+  -m, --only_missing    whether to download only missing CSV files (default:
+                        False)
+  -v, --verbose         whether to output logging information (default: False)
+  -d, --debug           whether to output debugging information (default:
                         False)
 ```

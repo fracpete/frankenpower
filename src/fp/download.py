@@ -1,5 +1,7 @@
 import argparse
+import calendar
 import logging
+import os
 import traceback
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -71,6 +73,56 @@ def date_to_str(d: datetime, aggregation: str) -> str:
         raise Exception("Unhandled aggregation: %s" % aggregation)
 
 
+def day_to_str(day: int) -> str:
+    """
+    Turns the day number into a string with st/nd/rd/th appended.
+
+    :param day: the to convert
+    :type day: int
+    :return: the generated string
+    :rtype: str
+    """
+    remainder = day % 10
+    if remainder == 1:
+        return "%dst" % day
+    elif remainder == 2:
+        return "%dnd" % day
+    elif remainder == 3:
+        return "%drd" % day
+    else:
+        return "%dth" % day
+
+
+def date_to_csv(d: datetime, aggregation: str) -> str:
+    """
+    Generates the file of the CSV file to look for.
+
+    Format:
+    - hourly: Frank Energy - My Hourly Usage From 12_00AM 22nd November 2024 to 11_59PM 22nd November 2024.csv
+    - daily: Frank Energy - My Daily Usage From 1st November 2024 to 30th November 2024.csv
+    - monthly: Frank Energy - My Monthly Usage From January 2024 to December 2024.csv
+
+    :param d: the date to generate the filename for
+    :type d: datetime
+    :param aggregation: the type of aggregatio used
+    :type aggregation: str
+    :return: the generated filename (no path)
+    :rtype: str
+    """
+    if aggregation == AGGREGATION_HOURLY:
+        d_str = "%s %s %d" % (day_to_str(d.day), d.strftime("%B"), d.year)
+        result = "Frank Energy - My Hourly Usage From 12_00AM %s to 11_59PM %s.csv" % (d_str, d_str)
+    elif aggregation == AGGREGATION_DAILY:
+        d_from = "1st %s %d" % (d.strftime("%B"), d.year)
+        d_to = "%s %s %d" % (day_to_str(calendar.monthrange(d.year, d.month)[1]), d.strftime("%B"), d.year)
+        result = "Frank Energy - My Daily Usage From %s to %s.csv" % (d_from, d_to)
+    elif aggregation == AGGREGATION_MONTHLY:
+        result = "Frank Energy - My Monthly Usage From January %d to December %d.csv" % (d.year, d.year)
+    else:
+        raise Exception("Unhandled aggregation: %s" % aggregation)
+    return result
+
+
 def date_to_id(d: datetime, aggregation: str) -> str:
     """
     Turns the date into a button ID using the specified aggregation.
@@ -93,7 +145,7 @@ def date_to_id(d: datetime, aggregation: str) -> str:
 
 
 def download(user: str, password: str, aggregation: str, from_date: str, to_date: str,
-             output_dir: str = None):
+             output_dir: str = None, only_missing: bool = False):
     """
     Downloads the usage data.
 
@@ -109,6 +161,8 @@ def download(user: str, password: str, aggregation: str, from_date: str, to_date
     :type to_date: str
     :param output_dir: the directory to download the CSV files to
     :type output_dir: str
+    :param only_missing: whether to download only the missing CSV files
+    :type only_missing: bool
     """
 
     # parse dates
@@ -194,38 +248,47 @@ def download(user: str, password: str, aggregation: str, from_date: str, to_date
     while curr_date <= _to_date:
         curr_button_id = date_to_id(curr_date, aggregation)
 
-        # open date dropdown
-        logger.info("Open date dropdown list")
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "card-dropdown-with-button")))
-        date_dropdown_div = driver.find_element(by=By.CLASS_NAME, value="card-dropdown-with-button")
-        date_dropdown_button = date_dropdown_div.find_element(by=By.CLASS_NAME, value="toggle")
-        sleep(1.0)
-        date_dropdown_button.click()
+        # skip if already downloaded?
+        skip = False
+        if only_missing:
+            csv_file = os.path.join("." if (output_dir is None) else output_dir, date_to_csv(curr_date, aggregation))
+            if os.path.exists(csv_file):
+                logger.info("Already downloaded, skipping: %s" % csv_file)
+                skip = True
 
-        # select date
-        logger.info("Select date: %s" % date_to_str(curr_date, aggregation))
-        date_dropdown_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, curr_button_id)))
-        try:
+        if not skip:
+            # open date dropdown
+            logger.info("Open date dropdown list")
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "card-dropdown-with-button")))
+            date_dropdown_div = driver.find_element(by=By.CLASS_NAME, value="card-dropdown-with-button")
+            date_dropdown_button = date_dropdown_div.find_element(by=By.CLASS_NAME, value="toggle")
+            sleep(1.0)
             date_dropdown_button.click()
-        except:
-            logger.exception("Failed to click button: %s" % curr_button_id)
 
-        # wait for data to be plotted
-        logger.info("Waiting for data plot")
-        try:
-            WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "amcharts-main-div")))
-            sleep(2.0)  # TODO better wait?
+            # select date
+            logger.info("Select date: %s" % date_to_str(curr_date, aggregation))
+            date_dropdown_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, curr_button_id)))
+            try:
+                date_dropdown_button.click()
+            except:
+                logger.exception("Failed to click button: %s" % curr_button_id)
 
-            # download CSV
-            logger.info("Download as CSV")
-            WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "download-usage-excel")))
-            button_download = driver.find_element(by=By.CLASS_NAME, value="download-usage-excel")
-            button_download.click()
-        except:
-            # error?
-            error_divs = driver.find_elements(by=By.CLASS_NAME, value="error-text")
-            if len(error_divs) > 0:
-                logger.error("Error encountered: %s" % error_divs[0].text)
+            # wait for data to be plotted
+            logger.info("Waiting for data plot")
+            try:
+                WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "amcharts-main-div")))
+                sleep(2.0)  # TODO better wait?
+
+                # download CSV
+                logger.info("Download as CSV")
+                WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "download-usage-excel")))
+                button_download = driver.find_element(by=By.CLASS_NAME, value="download-usage-excel")
+                button_download.click()
+            except:
+                # error?
+                error_divs = driver.find_elements(by=By.CLASS_NAME, value="error-text")
+                if len(error_divs) > 0:
+                    logger.error("Error encountered: %s" % error_divs[0].text)
 
         # udpate current date
         if aggregation == AGGREGATION_HOURLY:
@@ -250,7 +313,7 @@ def main(args=None):
     """
 
     parser = argparse.ArgumentParser(
-        description='Downloads enervy consumption data as CSV files.',
+        description='Downloads energy consumption data as CSV files.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         prog="fp-download")
     parser.add_argument("-u", "--user", required=True, help="The Frank Energy user to use, typically an email address.")
@@ -259,8 +322,9 @@ def main(args=None):
     parser.add_argument("-a", "--aggregation", required=False, choices=AGGREGATION, help="The type of aggrgated data to download.", default=AGGREGATION_HOURLY)
     parser.add_argument("-f", "--from_date", required=True, help="The start date (monthly: YYYY, daily: YYYY-MM, hourly: YYYY-MM-DD).")
     parser.add_argument("-t", "--to_date", required=True, help="The end date (monthly: YYYY, daily: YYYY-MM, hourly: YYYY-MM-DD).")
-    parser.add_argument("--verbose", action="store_true", dest="verbose", required=False, help="whether to output logging information")
-    parser.add_argument("--debug", action="store_true", dest="debug", required=False, help="whether to output debugging information")
+    parser.add_argument("-m", "--only_missing", action="store_true", dest="only_missing", required=False, help="whether to download only missing CSV files")
+    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", required=False, help="whether to output logging information")
+    parser.add_argument("-d", "--debug", action="store_true", dest="debug", required=False, help="whether to output debugging information")
     parsed = parser.parse_args(args=args)
     # configure loggin
     if parsed.debug:
@@ -268,7 +332,8 @@ def main(args=None):
     elif parsed.verbose:
         logging.basicConfig(level=logging.INFO)
     logger.debug(parsed)
-    download(parsed.user, parsed.password, parsed.aggregation, parsed.from_date, parsed.to_date, output_dir=parsed.output_dir)
+    download(parsed.user, parsed.password, parsed.aggregation, parsed.from_date, parsed.to_date,
+             output_dir=parsed.output_dir, only_missing=parsed.only_missing)
 
 
 def sys_main():
