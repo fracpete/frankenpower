@@ -9,31 +9,50 @@ from datetime import datetime
 logger = logging.getLogger("fp.clean")
 
 
-def clean(input_dir: str, output_dir: str):
+def clean(input_dir: str, output: str):
     """
     Cleans up the usage data.
 
     :param input_dir: the dir with the raw data
     :type input_dir: str
-    :param output_dir: the dir to store the clean data in
-    :type output_dir: str
+    :param output: the dir or file to store the clean data in
+    :type output: str
     """
+    separate_outputs = os.path.isdir(output)
+    if not separate_outputs and os.path.exists(output):
+        logger.info("Removing output file: %s" % output)
+        os.remove(output)
+    first_file = True
     for f in os.listdir(input_dir):
         if not f.lower().endswith(".csv"):
             continue
         path_in = os.path.join(input_dir, f)
-        path_out = os.path.join(output_dir, f)
+        if separate_outputs:
+            flags_out = "w"
+            path_out = os.path.join(output, f)
+        else:
+            flags_out = "a"
+            path_out = output
         logger.info("Loading from: %s" % path_in)
         logger.info("Saving to: %s" % path_out)
         with open(path_in, "r") as fp_in:
             reader = csv.reader(fp_in)
-            first = True
-            with open(path_out, "w") as fp_out:
+            first_row = True
+
+            # skip header when merging
+            skip_header = False
+            if not separate_outputs and not first_file:
+                skip_header = True
+
+            # clean data and write to output
+            with open(path_out, flags_out) as fp_out:
                 writer = csv.writer(fp_out)
                 for row in reader:
                     # header
-                    if first:
-                        first = False
+                    if first_row:
+                        first_row = False
+                        if skip_header:
+                            continue
                         row[1] = row[1] + "_kwh"
                         row[2] = "cost"
                     # data
@@ -52,6 +71,8 @@ def clean(input_dir: str, output_dir: str):
                         row[2] = row[2].replace("$", "")
                     writer.writerow(row)
 
+            first_file = False
+
 
 def main(args=None):
     """
@@ -67,7 +88,7 @@ def main(args=None):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         prog="fp-clean")
     parser.add_argument("-i", "--input_dir", required=False, help="The directory with the downloaded, raw CSV files.")
-    parser.add_argument("-o", "--output_dir", required=False, help="The directory to store the cleaned up CSV files in.")
+    parser.add_argument("-o", "--output", required=False, help="The directory or file to store the cleaned up CSV files in; using an output file will combine all input files into one.")
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", required=False, help="whether to output logging information")
     parser.add_argument("-d", "--debug", action="store_true", dest="debug", required=False, help="whether to output debugging information")
     parsed = parser.parse_args(args=args)
@@ -77,7 +98,7 @@ def main(args=None):
     elif parsed.verbose:
         logging.basicConfig(level=logging.INFO)
     logger.debug(parsed)
-    clean(parsed.input_dir, parsed.output_dir)
+    clean(parsed.input_dir, parsed.output)
 
 
 def sys_main():
